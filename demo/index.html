@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WalkingStick Platform — Design Demo</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --surface: #121820;
+      --surface-2: #1a2330;
+      --border: #2a3545;
+      --text: #e8edf4;
+      --muted: #8b9bb4;
+      --accent: #3dd6c3;
+      --accent-dim: #2a9d8f;
+      --waist: #f4a261;
+      --shoe: #4cc9f0;
+      --stick: #a78bfa;
+      --warn: #fbbf24;
+      --crit: #f87171;
+      --ok: #4ade80;
+      --radius: 14px;
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1a2a3a 0%, var(--bg) 55%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 2rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11, 15, 20, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 0.35rem;
+      max-width: 60ch;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .badge.ok { border-color: var(--ok); color: var(--ok); }
+
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+
+    section h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    section h2::before {
+      content: "";
+      width: 4px;
+      height: 1.1em;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 960px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* Architecture diagram */
+    .arch-canvas {
+      position: relative;
+      min-height: 340px;
+      background: var(--surface-2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .arch-svg {
+      width: 100%;
+      height: 340px;
+    }
+
+    .node-card {
+      position: absolute;
+      width: 180px;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: rgba(18, 24, 32, 0.95);
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .node-card:hover, .node-card.active {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+
+    .node-card.waist { top: 24px; left: 50%; transform: translateX(-50%); border-color: var(--waist); }
+    .node-card.waist:hover, .node-card.waist.active { border-color: var(--waist); }
+    .node-card.shoe { bottom: 24px; left: 12%; border-color: var(--shoe); }
+    .node-card.stick { bottom: 24px; right: 12%; border-color: var(--stick); }
+
+    .node-card .role {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.8;
+    }
+
+    .node-card h3 { font-size: 0.95rem; margin: 0.2rem 0; }
+    .node-card .ble-name { font-size: 0.7rem; color: var(--muted); font-family: monospace; }
+
+    .pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .flow-line {
+      stroke-dasharray: 8 6;
+      animation: dash 1.2s linear infinite;
+    }
+
+    @keyframes dash {
+      to { stroke-dashoffset: -28; }
+    }
+
+    /* Device detail panel */
+    .detail-panel {
+      background: var(--surface-2);
+      border-radius: 10px;
+      padding: 1rem;
+      min-height: 200px;
+    }
+
+    .detail-panel h3 { margin-bottom: 0.5rem; }
+    .detail-panel ul { margin-left: 1.2rem; color: var(--muted); font-size: 0.9rem; }
+    .detail-panel li { margin: 0.25rem 0; }
+
+    .pin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+    }
+
+    .pin-table th, .pin-table td {
+      text-align: left;
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pin-table th { color: var(--muted); font-weight: 500; }
+
+    /* Telemetry */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 800px) {
+      .telemetry-grid { grid-template-columns: 1fr; }
+    }
+
+    .telemetry-card {
+      background: var(--surface-2);
+      border-radius: 10px;
+      padding: 1rem;
+      border-top: 3px solid var(--border);
+    }
+
+    .telemetry-card.waist { border-top-color: var(--waist); }
+    .telemetry-card.shoe { border-top-color: var(--shoe); }
+    .telemetry-card.stick { border-top-color: var(--stick); }
+
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid rgba(42, 53, 69, 0.5);
+    }
+
+    .metric:last-child { border-bottom: none; }
+    .metric .label { color: var(--muted); }
+    .metric .value { font-family: monospace; font-weight: 600; }
+
+    /* Pressure bars */
+    .pressure-bars {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .bar-group label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .bar-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--shoe);
+      transition: width 0.15s ease;
+    }
+
+    /* Alerts */
+    .alert-log {
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.8rem;
+      background: #080b10;
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+
+    .alert-entry {
+      padding: 0.35rem 0;
+      border-bottom: 1px solid rgba(42, 53, 69, 0.4);
+    }
+
+    .alert-entry .ts { color: var(--muted); }
+    .alert-entry.info { color: var(--accent); }
+    .alert-entry.warning { color: var(--warn); }
+    .alert-entry.critical { color: var(--crit); }
+
+    /* Scenario buttons */
+    .scenario-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:hover { border-color: var(--accent); background: #1e2a38; }
+    button.primary { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+    button.danger { border-color: var(--crit); color: var(--crit); }
+
+    /* Protocol table */
+    .proto-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .proto-table th, .proto-table td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .proto-table code {
+      font-size: 0.78rem;
+      color: var(--accent);
+    }
+
+    /* Build status */
+    .build-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 700px) {
+      .build-grid { grid-template-columns: 1fr; }
+    }
+
+    .build-item {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      border-left: 3px solid var(--ok);
+    }
+
+    .build-item .env { font-weight: 600; font-size: 0.9rem; }
+    .build-item .stats { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; font-family: monospace; }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WalkingStick Platform</h1>
+    <p>Distributed mobility-assist system — three ESP32 nodes communicating over BLE for gait monitoring, fall detection, and local alerting.</p>
+    <div class="badge-row">
+      <span class="badge ok">✓ All firmware builds succeeded</span>
+      <span class="badge">ESP32 · Arduino · BLE</span>
+      <span class="badge">Protocol v1</span>
+      <span class="badge" id="sim-status">Simulation: running</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid-2">
+      <section>
+        <h2>System Architecture</h2>
+        <div class="arch-canvas" id="arch-canvas">
+          <svg class="arch-svg" viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#3dd6c3" />
+              </marker>
+            </defs>
+            <!-- Shoe → Waist -->
+            <path id="flow-shoe-waist" class="flow-line" d="M 150 280 Q 200 200 300 90" fill="none" stroke="#4cc9f0" stroke-width="2" marker-end="url(#arrow)" opacity="0.7" />
+            <!-- Waist → Stick -->
+            <path id="flow-waist-stick" class="flow-line" d="M 300 90 Q 400 180 450 280" fill="none" stroke="#f4a261" stroke-width="2" marker-end="url(#arrow)" opacity="0.7" />
+            <!-- Logger -->
+            <rect x="480" y="30" width="100" height="50" rx="8" fill="#1a2330" stroke="#2a3545" />
+            <text x="530" y="52" text-anchor="middle" fill="#8b9bb4" font-size="11">Data Logger</text>
+            <text x="530" y="68" text-anchor="middle" fill="#4ade80" font-size="10">ring buffer</text>
+            <path class="flow-line" d="M 380 70 L 478 55" fill="none" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.5" />
+          </svg>
+
+          <div class="node-card waist active" data-node="waist">
+            <span class="pulse-dot" style="background:var(--waist)"></span>
+            <div class="role" style="color:var(--waist)">Hub</div>
+            <h3>Waist Safety Pad</h3>
+            <div class="ble-name">WalkingStick-Waist</div>
+          </div>
+          <div class="node-card shoe" data-node="shoe">
+            <span class="pulse-dot" style="background:var(--shoe)"></span>
+            <div class="role" style="color:var(--shoe)">Sensor</div>
+            <h3>Shoe Pad</h3>
+            <div class="ble-name">WalkingStick-Shoe</div>
+          </div>
+          <div class="node-card stick" data-node="stick">
+            <span class="pulse-dot" style="background:var(--stick)"></span>
+            <div class="role" style="color:var(--stick)">Alert</div>
+            <h3>Walking Stick</h3>
+            <div class="ble-name">WalkingStick-Handle</div>
+          </div>
+        </div>
+        <div class="scenario-row">
+          <button class="primary" id="btn-normal">Normal gait</button>
+          <button id="btn-imbalance">Gait imbalance</button>
+          <button id="btn-fall">Simulate fall</button>
+          <button id="btn-impact">Simulate impact</button>
+          <button class="danger" id="btn-sos">SOS button</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Device Detail</h2>
+        <div class="detail-panel" id="detail-panel">
+          <h3 style="color:var(--waist)">Waist Safety Pad (Hub)</h3>
+          <p style="color:var(--muted);font-size:0.9rem;margin-bottom:0.5rem">Primary data collector, fall/impact detection, BLE peripheral.</p>
+          <ul>
+            <li>MPU6050/BMI160 IMU on I2C (SDA 21, SCL 22)</li>
+            <li>Piezo buzzer on GPIO 25 for critical alerts</li>
+            <li>In-memory ring buffer (64 samples) — SD card hooks reserved</li>
+            <li>Advertises <code>WALKING_STICK_SERVICE_UUID</code></li>
+          </ul>
+          <table class="pin-table">
+            <tr><th>Signal</th><th>GPIO</th></tr>
+            <tr><td>IMU interrupt</td><td>4</td></tr>
+            <tr><td>Buzzer</td><td>25</td></tr>
+            <tr><td>Status LED</td><td>2</td></tr>
+            <tr><td>SD card CS</td><td>5</td></tr>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section>
+      <h2>Live Telemetry Simulation</h2>
+      <p style="color:var(--muted);font-size:0.9rem;margin:-0.5rem 0 1rem">Mirrors firmware sampling at 50 ms intervals with 200 ms BLE telemetry envelopes.</p>
+      <div class="telemetry-grid">
+        <div class="telemetry-card waist">
+          <strong>Waist IMU</strong>
+          <div class="metric"><span class="label">accel_x</span><span class="value" id="t-accel-x">0.00 g</span></div>
+          <div class="metric"><span class="label">accel_y</span><span class="value" id="t-accel-y">0.00 g</span></div>
+          <div class="metric"><span class="label">accel_z</span><span class="value" id="t-accel-z">1.00 g</span></div>
+          <div class="metric"><span class="label">magnitude</span><span class="value" id="t-magnitude">1.00 g</span></div>
+          <div class="metric"><span class="label">battery</span><span class="value" id="t-waist-bat">100%</span></div>
+        </div>
+        <div class="telemetry-card shoe">
+          <strong>Shoe Pressure (FSR)</strong>
+          <div class="pressure-bars">
+            <div class="bar-group"><label>L heel</label><div class="bar-track"><div class="bar-fill" id="bar-lh" style="width:30%"></div></div></div>
+            <div class="bar-group"><label>R heel</label><div class="bar-track"><div class="bar-fill" id="bar-rh" style="width:30%"></div></div></div>
+            <div class="bar-group"><label>L toe</label><div class="bar-track"><div class="bar-fill" id="bar-lt" style="width:25%"></div></div></div>
+            <div class="bar-group"><label>R toe</label><div class="bar-track"><div class="bar-fill" id="bar-rt" style="width:25%"></div></div></div>
+          </div>
+          <div class="metric" style="margin-top:0.5rem"><span class="label">left total</span><span class="value" id="t-pleft">0</span></div>
+          <div class="metric"><span class="label">right total</span><span class="value" id="t-pright">0</span></div>
+          <div class="metric"><span class="label">imbalance</span><span class="value" id="t-imbalance">0%</span></div>
+        </div>
+        <div class="telemetry-card stick">
+          <strong>Walking Stick</strong>
+          <div class="metric"><span class="label">BLE scan</span><span class="value" id="t-scan">active</span></div>
+          <div class="metric"><span class="label">nodes found</span><span class="value" id="t-nodes">2</span></div>
+          <div class="metric"><span class="label">vibrator</span><span class="value" id="t-vibrator">OFF</span></div>
+          <div class="metric"><span class="label">battery</span><span class="value" id="t-stick-bat">87%</span></div>
+          <div class="metric"><span class="label">SOS button</span><span class="value" id="t-sos">released</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <section>
+        <h2>BLE Protocol</h2>
+        <table class="proto-table">
+          <tr><th>Characteristic</th><th>UUID suffix</th><th>Direction</th></tr>
+          <tr><td>Service</td><td><code>…7890</code></td><td>All nodes</td></tr>
+          <tr><td>TELEMETRY_CHAR</td><td><code>…7891</code></td><td>Notify → hub</td></tr>
+          <tr><td>COMMAND_CHAR</td><td><code>…7892</code></td><td>Reserved</td></tr>
+          <tr><td>ALERT_CHAR</td><td><code>…7893</code></td><td>Notify → stick</td></tr>
+        </table>
+        <p style="margin-top:0.75rem;font-size:0.85rem;color:var(--muted)">
+          Full UUID: <code style="color:var(--accent)">a1b2c3d4-e5f6-7890-abcd-ef1234567890</code>
+        </p>
+        <table class="proto-table" style="margin-top:1rem">
+          <tr><th>Threshold</th><th>Value</th></tr>
+          <tr><td>Fall detection</td><td>≥ 2.5 g</td></tr>
+          <tr><td>Impact detection</td><td>≥ 4.0 g</td></tr>
+          <tr><td>Gait imbalance</td><td>&gt; 60% L/R ratio</td></tr>
+          <tr><td>Low battery</td><td>≤ 15%</td></tr>
+          <tr><td>Sample interval</td><td>50 ms</td></tr>
+          <tr><td>Telemetry interval</td><td>200 ms</td></tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Alert Log</h2>
+        <div class="alert-log" id="alert-log"></div>
+      </section>
+    </div>
+
+    <section>
+      <h2>Build Matrix</h2>
+      <div class="build-grid">
+        <div class="build-item">
+          <div class="env">waist_safety_pad</div>
+          <div class="stats">RAM 12.0% · Flash 86.8% · SUCCESS</div>
+        </div>
+        <div class="build-item">
+          <div class="env">shoe_pad</div>
+          <div class="stats">RAM 12.0% · Flash 86.4% · SUCCESS</div>
+        </div>
+        <div class="build-item">
+          <div class="env">walking_stick</div>
+          <div class="stats">RAM 12.0% · Flash 85.6% · SUCCESS</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    WalkingStick Platform — interactive design demo · firmware built with PlatformIO
+  </footer>
+
+  <script>
+    const CONFIG = {
+      FALL_THRESHOLD: 2.5,
+      IMPACT_THRESHOLD: 4.0,
+      IMBALANCE_THRESHOLD: 0.6,
+      MIN_PRESSURE: 100,
+      SAMPLE_MS: 50,
+    };
+
+    const DETAILS = {
+      waist: {
+        title: 'Waist Safety Pad (Hub)',
+        color: 'var(--waist)',
+        desc: 'Primary data collector, fall/impact detection, BLE peripheral.',
+        bullets: [
+          'MPU6050/BMI160 IMU on I2C (SDA 21, SCL 22)',
+          'Piezo buzzer on GPIO 25 for critical alerts',
+          'In-memory ring buffer (64 samples) — SD card hooks reserved',
+          'Advertises WALKING_STICK_SERVICE_UUID',
+        ],
+        pins: [['IMU interrupt', '4'], ['Buzzer', '25'], ['Status LED', '2'], ['SD card CS', '5']],
+      },
+      shoe: {
+        title: 'Shoe Pad (Sensor)',
+        color: 'var(--shoe)',
+        desc: 'Four FSR channels stream gait pressure telemetry to the hub.',
+        bullets: [
+          'FSR voltage dividers: 3.3V → FSR → ADC → 10kΩ → GND',
+          'Detects gait imbalance when L/R ratio exceeds 60%',
+          'Streams TelemetryPacket every 200 ms over BLE notify',
+        ],
+        pins: [['FSR left heel', '34'], ['FSR left toe', '35'], ['FSR right heel', '32'], ['FSR right toe', '33'], ['Status LED', '2']],
+      },
+      stick: {
+        title: 'Walking Stick (Alert)',
+        color: 'var(--stick)',
+        desc: 'BLE central — scans for nodes, SOS button, haptic vibration motor.',
+        bullets: [
+          'Active BLE scan every 5 s for WalkingStick service UUID',
+          'SOS button on GPIO 0 (pull-up) triggers vibration',
+          'Battery ADC on GPIO 36 with low-battery alert at 15%',
+        ],
+        pins: [['SOS button', '0'], ['Vibrator', '26'], ['Status LED', '2'], ['Battery ADC', '36']],
+      },
+    };
+
+    let scenario = 'normal';
+    let tick = 0;
+    let vibratorOn = false;
+    let sosPressed = false;
+
+    const state = {
+      accel: { x: 0, y: 0, z: 1 },
+      pressure: { lh: 180, lt: 150, rh: 175, rt: 145 },
+      stickBattery: 87,
+    };
+
+    function logAlert(level, source, message) {
+      const el = document.getElementById('alert-log');
+      const ts = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = `alert-entry ${level}`;
+      entry.innerHTML = `<span class="ts">[${ts}]</span> <strong>${source}</strong> — ${message}`;
+      el.prepend(entry);
+      while (el.children.length > 50) el.removeChild(el.lastChild);
+    }
+
+    function renderDetail(node) {
+      const d = DETAILS[node];
+      const panel = document.getElementById('detail-panel');
+      panel.innerHTML = `
+        <h3 style="color:${d.color}">${d.title}</h3>
+        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:0.5rem">${d.desc}</p>
+        <ul>${d.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+        <table class="pin-table">
+          <tr><th>Signal</th><th>GPIO</th></tr>
+          ${d.pins.map(([s, g]) => `<tr><td>${s}</td><td>${g}</td></tr>`).join('')}
+        </table>`;
+      document.querySelectorAll('.node-card').forEach(c => c.classList.toggle('active', c.dataset.node === node));
+    }
+
+    document.querySelectorAll('.node-card').forEach(card => {
+      card.addEventListener('click', () => renderDetail(card.dataset.node));
+    });
+
+    function magnitude(a) {
+      return Math.sqrt(a.x ** 2 + a.y ** 2 + a.z ** 2);
+    }
+
+    function evaluateSafety(accel) {
+      const mag = magnitude(accel);
+      if (mag >= CONFIG.IMPACT_THRESHOLD) {
+        return { level: 'critical', type: 'IMPACT', msg: `Impact detected: ${mag.toFixed(2)}g` };
+      }
+      if (mag >= CONFIG.FALL_THRESHOLD) {
+        return { level: 'warning', type: 'FALL', msg: `Possible fall: ${mag.toFixed(2)}g` };
+      }
+      return null;
+    }
+
+    function evaluateGait(p) {
+      const left = p.lh + p.lt;
+      const right = p.rh + p.rt;
+      const total = left + right;
+      if (total < CONFIG.MIN_PRESSURE) return null;
+      const imbalance = Math.abs(left - right) / total;
+      if (imbalance > CONFIG.IMBALANCE_THRESHOLD) {
+        return { level: 'warning', type: 'GAIT', msg: `Gait imbalance: ${(imbalance * 100).toFixed(0)}%` };
+      }
+      return null;
+    }
+
+    function simulate() {
+      tick++;
+      const t = tick * 0.05;
+
+      if (scenario === 'normal') {
+        state.accel = { x: Math.sin(t) * 0.1, y: Math.cos(t * 0.7) * 0.08, z: 1 + Math.sin(t * 2) * 0.05 };
+        const walk = Math.abs(Math.sin(t * 3));
+        state.pressure = {
+          lh: 120 + walk * 200 + Math.random() * 20,
+          lt: 100 + walk * 150 + Math.random() * 15,
+          rh: 115 + walk * 195 + Math.random() * 20,
+          rt: 95 + walk * 145 + Math.random() * 15,
+        };
+        vibratorOn = false;
+        sosPressed = false;
+      } else if (scenario === 'imbalance') {
+        state.accel = { x: 0.15, y: 0.1, z: 1.0 };
+        state.pressure = { lh: 450, lt: 380, rh: 80, rt: 60 };
+      } else if (scenario === 'fall') {
+        state.accel = { x: 1.8, y: -1.2, z: 0.5 };
+        state.pressure = { lh: 50, lt: 40, rh: 45, rt: 35 };
+        vibratorOn = true;
+      } else if (scenario === 'impact') {
+        state.accel = { x: 2.5, y: -3.0, z: 1.5 };
+        vibratorOn = true;
+      } else if (scenario === 'sos') {
+        state.accel = { x: 0, y: 0, z: 1 };
+        sosPressed = true;
+        vibratorOn = true;
+      }
+
+      const mag = magnitude(state.accel);
+      document.getElementById('t-accel-x').textContent = state.accel.x.toFixed(2) + ' g';
+      document.getElementById('t-accel-y').textContent = state.accel.y.toFixed(2) + ' g';
+      document.getElementById('t-accel-z').textContent = state.accel.z.toFixed(2) + ' g';
+      document.getElementById('t-magnitude').textContent = mag.toFixed(2) + ' g';
+
+      const p = state.pressure;
+      const maxP = 600;
+      ['lh', 'lt', 'rh', 'rt'].forEach(k => {
+        document.getElementById('bar-' + k.replace('lh','lh').replace('lt','lt').replace('rh','rh').replace('rt','rt')).style.width = Math.min(100, p[k] / maxP * 100) + '%';
+      });
+      document.getElementById('bar-lh').style.width = Math.min(100, p.lh / maxP * 100) + '%';
+      document.getElementById('bar-lt').style.width = Math.min(100, p.lt / maxP * 100) + '%';
+      document.getElementById('bar-rh').style.width = Math.min(100, p.rh / maxP * 100) + '%';
+      document.getElementById('bar-rt').style.width = Math.min(100, p.rt / maxP * 100) + '%';
+
+      const left = p.lh + p.lt;
+      const right = p.rh + p.rt;
+      const total = left + right;
+      const imbalance = total > 0 ? Math.abs(left - right) / total : 0;
+      document.getElementById('t-pleft').textContent = Math.round(left);
+      document.getElementById('t-pright').textContent = Math.round(right);
+      document.getElementById('t-imbalance').textContent = (imbalance * 100).toFixed(0) + '%';
+
+      document.getElementById('t-vibrator').textContent = vibratorOn ? 'ON' : 'OFF';
+      document.getElementById('t-vibrator').style.color = vibratorOn ? 'var(--crit)' : 'inherit';
+      document.getElementById('t-sos').textContent = sosPressed ? 'PRESSED' : 'released';
+      document.getElementById('t-sos').style.color = sosPressed ? 'var(--crit)' : 'inherit';
+
+      if (tick % 4 === 0) {
+        const safety = evaluateSafety(state.accel);
+        if (safety) {
+          logAlert(safety.level, 'waist_safety_pad', safety.msg);
+          if (safety.level === 'critical') logAlert('info', 'waist', 'Buzzer triggered on GPIO 25');
+        }
+        const gait = evaluateGait(p);
+        if (gait) logAlert(gait.level, 'shoe_pad', gait.msg);
+        if (sosPressed) logAlert('critical', 'walking_stick', 'ALERT: SOS pressed');
+        if (vibratorOn && !sosPressed && safety) logAlert('warning', 'walking_stick', 'Vibration motor ON — safety event');
+      }
+    }
+
+    document.getElementById('btn-normal').addEventListener('click', () => { scenario = 'normal'; logAlert('info', 'demo', 'Scenario: normal gait'); });
+    document.getElementById('btn-imbalance').addEventListener('click', () => { scenario = 'imbalance'; logAlert('warning', 'demo', 'Scenario: gait imbalance'); });
+    document.getElementById('btn-fall').addEventListener('click', () => { scenario = 'fall'; logAlert('warning', 'demo', 'Scenario: fall detection'); });
+    document.getElementById('btn-impact').addEventListener('click', () => { scenario = 'impact'; logAlert('critical', 'demo', 'Scenario: impact detection'); });
+    document.getElementById('btn-sos').addEventListener('click', () => { scenario = 'sos'; logAlert('critical', 'demo', 'Scenario: SOS button'); });
+
+    logAlert('info', 'system', 'Waist safety pad ready — BLE advertising WalkingStick-Waist');
+    logAlert('info', 'system', 'Shoe pad sensor ready — BLE advertising WalkingStick-Shoe');
+    logAlert('info', 'system', 'Walking stick ready — BLE scan active');
+    setInterval(simulate, CONFIG.SAMPLE_MS);
+  </script>
+</body>
+</html>
