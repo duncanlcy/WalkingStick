@@ -73,6 +73,21 @@ Edit `include/config.h` to adjust:
 - Gait imbalance sensitivity
 - Sample and telemetry intervals
 
+## Localhost demo
+
+A browser-based simulator mirrors the three-device architecture, safety thresholds,
+and BLE data flow without hardware:
+
+```bash
+./scripts/run_demo.sh
+```
+
+Then open [http://localhost:8080](http://localhost:8080).
+
+Use the scenario buttons to trigger normal gait, imbalance, fall, impact, SOS, and
+low-battery events. Telemetry updates every 50 ms using the same thresholds as
+`include/config.h` and `include/safety.h`.
+
 ## CI
 
 GitHub Actions builds all three environments on every push and pull request.

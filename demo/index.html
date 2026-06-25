@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WalkingStick Platform Demo</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>WalkingStick Platform Demo</h1>
+      <p>
+        Local simulator for the three-node mobility system: shoe pad gait sensors,
+        waist safety hub, and walking stick alerts. Mirrors firmware thresholds and
+        BLE data flow from <code>include/</code>.
+      </p>
+      <div class="hero-stats">
+        <div class="stat-pill">Uptime: <strong id="uptime">00:00</strong></div>
+        <div class="stat-pill">Hub buffer: <strong id="logger-count">0</strong> / 64 samples</div>
+        <div class="stat-pill">Service UUID: <code>a1b2c3d4-…-7890</code></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Scenarios</h2>
+        <div id="scenario-buttons" class="scenario-grid"></div>
+        <div class="toolbar">
+          <p class="muted">Click a scenario to inject sensor conditions. Telemetry updates every 50 ms.</p>
+          <button id="reset-btn" type="button">Reset simulation</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>BLE topology</h2>
+        <div class="flow">
+          <article id="shoe-card" class="device-card online" data-role="shoe">
+            <h3 class="device-name">WalkingStick-Shoe</h3>
+            <div class="device-meta">
+              <span>Shoe pad</span>
+              <span class="battery">--%</span>
+            </div>
+            <div class="telemetry"></div>
+          </article>
+
+          <div id="link-shoe-waist" class="flow-link connected">telemetry →</div>
+
+          <article id="waist-card" class="device-card online" data-role="waist">
+            <h3 class="device-name">WalkingStick-Waist</h3>
+            <div class="device-meta">
+              <span>Hub + IMU</span>
+              <span class="battery">--%</span>
+            </div>
+            <div class="telemetry"></div>
+          </article>
+
+          <div id="link-waist-stick" class="flow-link connected">alerts →</div>
+
+          <article id="stick-card" class="device-card online" data-role="stick">
+            <h3 class="device-name">WalkingStick-Handle</h3>
+            <div class="device-meta">
+              <span>Handle</span>
+              <span class="battery">--%</span>
+            </div>
+            <div class="telemetry"></div>
+          </article>
+        </div>
+        <p id="stick-status" class="stick-status">Vibrator off — monitoring</p>
+      </section>
+
+      <section class="grid grid-2">
+        <article class="panel">
+          <h2>Shoe pad pressure (FSR)</h2>
+          <div id="pressure-bars"></div>
+        </article>
+
+        <article class="panel">
+          <h2>Waist IMU</h2>
+          <div id="accel-display"></div>
+        </article>
+      </section>
+
+      <section class="grid grid-2">
+        <article class="panel">
+          <h2>Alert feed</h2>
+          <div id="alert-feed"></div>
+        </article>
+
+        <article class="panel">
+          <h2>Walking stick BLE scan</h2>
+          <ul id="ble-nodes"></ul>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      Run with <code>./scripts/run_demo.sh</code> then open <code>http://localhost:8080</code>.
+      Flash real hardware with <code>./scripts/flash.sh</code> when ready.
+    </footer>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
