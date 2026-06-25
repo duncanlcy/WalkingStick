@@ -66,9 +66,9 @@ Characteristics:
 
 1. **Fall detection** — accelerometer magnitude above `FALL_ACCEL_THRESHOLD_G`
 2. **Impact detection** — magnitude above `IMPACT_THRESHOLD_G` (higher threshold)
-3. **Gait irregularity** — left/right pressure imbalance above 60%
+3. **Gait irregularity** — left/right pressure imbalance above configurable threshold (adjusted by rollout stage)
 
-Thresholds are configurable in `include/config.h`.
+Thresholds are configurable in `include/config.h`. The predictive model applies staged rollout sensitivity via `GaitPredictor` and `RolloutManager` — see [deployment.md](deployment.md).
 
 ## Build matrix
 
@@ -86,3 +86,5 @@ Each environment sets `DEVICE_ROLE` and `BLE_DEVICE_NAME` via compile flags in `
 - Wi-Fi/cloud upload from waist hub
 - Replace placeholder IMU driver with MPU6050/BMI160 I2C driver
 - OTA firmware updates per node
+- Remote rollout configuration via `COMMAND_CHAR` BLE characteristic
+- Cloud-based model retraining pipeline

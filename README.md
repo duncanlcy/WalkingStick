@@ -64,14 +64,18 @@ See [docs/hardware.md](docs/hardware.md) for BOM, wiring, and pin assignments.
 
 See [docs/architecture.md](docs/architecture.md) for system design and data flow.
 
+See [docs/deployment.md](docs/deployment.md) for predictive model staged rollout and operational update procedures.
+
 ## Configuration
 
 Edit `include/config.h` to adjust:
 
 - GPIO pin assignments per PCB revision
 - Fall/impact acceleration thresholds
-- Gait imbalance sensitivity
+- Gait imbalance sensitivity and rollout stage defaults
 - Sample and telemetry intervals
+
+For staged deployment of the predictive model (initial high-sensitivity warnings, client threshold tuning, and model update workflow), see [docs/deployment.md](docs/deployment.md).
 
 ## CI
 

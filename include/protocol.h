@@ -23,6 +23,15 @@ enum AlertType : uint8_t {
   ALERT_TYPE_GAIT_IRREGULAR = 3,
   ALERT_TYPE_LOW_BATTERY = 4,
   ALERT_TYPE_SOS = 5,
+  ALERT_TYPE_GAIT_PREDICTION = 6,
+};
+
+enum PredictionOutcome : uint8_t {
+  OUTCOME_NONE = 0,
+  OUTCOME_TRUE_POSITIVE = 1,   // Warning issued, fall successfully prevented
+  OUTCOME_FALSE_POSITIVE = 2,  // Warning issued, no actual risk materialized
+  OUTCOME_TRUE_NEGATIVE = 3,   // No warning, no fall
+  OUTCOME_FALSE_NEGATIVE = 4,  // No warning, fall occurred
 };
 
 struct SensorSample {
@@ -44,10 +53,36 @@ struct AlertEvent {
   char message[64];
 };
 
+struct ModelMetricsSnapshot {
+  uint32_t true_positives;
+  uint32_t false_positives;
+  uint32_t true_negatives;
+  uint32_t false_negatives;
+  uint32_t fall_preventions;
+  uint32_t total_predictions;
+};
+
+struct PredictionResult {
+  uint32_t timestamp_ms;
+  DeviceRole source;
+  AlertEvent alert{};
+  float confidence;
+  PredictionOutcome outcome;
+  bool is_abnormal;
+};
+
+struct RolloutConfigPacket {
+  uint8_t stage;
+  uint8_t client_safety_threshold;
+  uint8_t calibration_progress;
+};
+
 struct TelemetryPacket {
   uint8_t protocol_version;
   DeviceRole source;
   SensorSample sample;
   AlertEvent alert;
   bool has_alert;
+  bool has_metrics;
+  ModelMetricsSnapshot metrics;
 };

@@ -39,6 +39,24 @@ constexpr uint32_t BLE_SCAN_INTERVAL_MS = 5000;
 
 constexpr float FALL_ACCEL_THRESHOLD_G = 2.5f;
 constexpr float IMPACT_THRESHOLD_G = 4.0f;
+constexpr float GAIT_IMBALANCE_THRESHOLD = 0.6f;
 constexpr uint16_t MIN_PRESSURE_THRESHOLD = 100;
 constexpr uint8_t LOW_BATTERY_PERCENT = 15;
+
+// Staged rollout defaults — stage 1 uses high warning sensitivity
+constexpr float INITIAL_ROLLOUT_GAIT_THRESHOLD = 0.35f;
+constexpr float INITIAL_ROLLOUT_FALL_MULTIPLIER = 0.75f;
+constexpr uint8_t DEFAULT_CLIENT_SAFETY_THRESHOLD = 70;
+constexpr uint32_t PREVENTION_WINDOW_MS = 10000;
+
+// Map client safety threshold (0-100) to detection parameters.
+inline float clientGaitThreshold(uint8_t safety_threshold) {
+  const float t = safety_threshold / 100.0f;
+  return GAIT_IMBALANCE_THRESHOLD - t * 0.25f;
+}
+
+inline float clientFallMultiplier(uint8_t safety_threshold) {
+  const float t = safety_threshold / 100.0f;
+  return 1.0f - t * 0.3f;
+}
 }  // namespace config

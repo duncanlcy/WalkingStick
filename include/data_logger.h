@@ -18,6 +18,24 @@ class DataLogger {
     return true;
   }
 
+  bool logOutcome(PredictionOutcome outcome, const SensorSample& sample) {
+    TelemetryPacket packet{};
+    packet.protocol_version = PROTOCOL_VERSION;
+    packet.source = sample.source;
+    packet.sample = sample;
+    packet.has_alert = outcome == OUTCOME_TRUE_POSITIVE || outcome == OUTCOME_FALSE_POSITIVE;
+    packet.has_metrics = true;
+    if (packet.has_alert) {
+      packet.alert.timestamp_ms = sample.timestamp_ms;
+      packet.alert.source = sample.source;
+      packet.alert.level = outcome == OUTCOME_TRUE_POSITIVE ? ALERT_WARNING : ALERT_INFO;
+      packet.alert.type = ALERT_TYPE_GAIT_PREDICTION;
+      snprintf(packet.alert.message, sizeof(packet.alert.message),
+               outcome == OUTCOME_TRUE_POSITIVE ? "Fall prevention recorded" : "Prediction outcome logged");
+    }
+    return log(packet);
+  }
+
   size_t count() const { return count_; }
 
   bool get(size_t index, TelemetryPacket& out) const {
