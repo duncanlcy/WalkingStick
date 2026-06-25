@@ -1,0 +1,38 @@
+name: Build Firmware
+
+on:
+  push:
+    branches: [main, 'cursor/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [waist_safety_pad, shoe_pad, walking_stick]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .pio
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Build ${{ matrix.env }}
+        run: pio run -e ${{ matrix.env }}
