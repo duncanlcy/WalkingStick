@@ -10,13 +10,52 @@
 #include "sensors.h"
 #include "safety.h"
 #include "data_logger.h"
+#include "component_health.h"
+#include "model_controller.h"
 
 static AccelerometerSensor accelerometer;
 static SafetyMonitor safety;
 static DataLogger logger;
+static ComponentHealthMonitor health_monitor;
+static ModelController model;
 static BLEServer* ble_server = nullptr;
 static BLECharacteristic* telemetry_char = nullptr;
 static BLECharacteristic* alert_char = nullptr;
+static BLECharacteristic* command_char = nullptr;
+static bool fault_alert_sent = false;
+static bool model_stopped_alert_sent = false;
+
+class CommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const std::string& value = characteristic->getValue();
+    if (value.size() < sizeof(CommandPacket)) {
+      return;
+    }
+
+    CommandPacket command{};
+    memcpy(&command, value.data(), sizeof(command));
+
+    switch (command.type) {
+      case CMD_START_MODEL:
+        model.start();
+        fault_alert_sent = false;
+        model_stopped_alert_sent = false;
+        Serial.println("Model inference restarted via command");
+        break;
+      case CMD_STOP_MODEL:
+        model.stop("stopped via command");
+        Serial.println("Model inference stopped via command");
+        break;
+      case CMD_REBOOT_DEVICE:
+        Serial.println("Reboot requested via command");
+        delay(100);
+        esp_restart();
+        break;
+      default:
+        break;
+    }
+  }
+};
 
 static void publishTelemetry(const TelemetryPacket& packet) {
   if (!telemetry_char) {
@@ -61,6 +100,11 @@ static void setupBle() {
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
   alert_char->addDescriptor(new BLE2902());
 
+  command_char = service->createCharacteristic(
+      COMMAND_CHAR_UUID,
+      BLECharacteristic::PROPERTY_WRITE);
+  command_char->setCallbacks(new CommandCallbacks());
+
   service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   advertising->addServiceUUID(WALKING_STICK_SERVICE_UUID);
@@ -94,7 +138,28 @@ void loop() {
   digitalWrite(pins::waist::STATUS_LED, !digitalRead(pins::waist::STATUS_LED));
 
   const AccelerometerReading accel = accelerometer.read();
-  const AlertEvent safety_alert = safety.evaluate(accel, DEVICE_WAIST_SAFETY_PAD);
+  const SensorHealth sensor_health = health_monitor.checkAccelerometer(accel);
+  const bool sensor_healthy = health_monitor.accelerometerHealthy();
+
+  if (!sensor_healthy && model.inferenceAllowed()) {
+    model.stop(sensor_health.reason);
+    fault_alert_sent = false;
+    model_stopped_alert_sent = false;
+    Serial.printf("Stopping model inference: %s\n", sensor_health.reason);
+  }
+
+  model.tick(sensor_healthy);
+
+  AlertEvent active_alert{};
+  if (!sensor_healthy && !fault_alert_sent) {
+    active_alert = model.makeSensorFaultAlert(DEVICE_WAIST_SAFETY_PAD, sensor_health.reason);
+    fault_alert_sent = true;
+  } else if (!model.inferenceAllowed() && !model_stopped_alert_sent) {
+    active_alert = model.makeStoppedAlert(DEVICE_WAIST_SAFETY_PAD);
+    model_stopped_alert_sent = true;
+  } else if (model.inferenceAllowed()) {
+    active_alert = safety.evaluate(accel, DEVICE_WAIST_SAFETY_PAD);
+  }
 
   TelemetryPacket packet{};
   packet.protocol_version = PROTOCOL_VERSION;
@@ -105,14 +170,16 @@ void loop() {
   packet.sample.accel_z = accel.z;
   packet.sample.battery_percent = 100;
   packet.sample.source = DEVICE_WAIST_SAFETY_PAD;
-  packet.has_alert = safety_alert.level != ALERT_NONE;
-  packet.alert = safety_alert;
+  packet.model_state = model.state();
+  packet.sensor_healthy = sensor_healthy;
+  packet.has_alert = active_alert.level != ALERT_NONE;
+  packet.alert = active_alert;
 
   logger.log(packet);
   publishTelemetry(packet);
 
   if (packet.has_alert) {
-    publishAlert(safety_alert);
-    Serial.println(safety_alert.message);
+    publishAlert(active_alert);
+    Serial.println(active_alert.message);
   }
 }

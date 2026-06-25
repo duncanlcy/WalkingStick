@@ -41,4 +41,14 @@ constexpr float FALL_ACCEL_THRESHOLD_G = 2.5f;
 constexpr float IMPACT_THRESHOLD_G = 4.0f;
 constexpr uint16_t MIN_PRESSURE_THRESHOLD = 100;
 constexpr uint8_t LOW_BATTERY_PERCENT = 15;
+
+// Component health and model fail-safe
+constexpr uint8_t MAX_SENSOR_FAILURES = 5;
+constexpr float ACCEL_MIN_VALID_G = 0.1f;
+constexpr float ACCEL_MAX_VALID_G = 16.0f;
+constexpr float ACCEL_STUCK_TOLERANCE_G = 0.01f;
+constexpr uint16_t ADC_SATURATED_THRESHOLD = 4090;
+constexpr uint16_t ADC_STUCK_TOLERANCE = 2;
+constexpr uint32_t MODEL_RECOVERY_REBOOT_MS = 10000;
+constexpr bool MODEL_AUTO_RECOVERY_REBOOT = true;
 }  // namespace config

@@ -7,6 +7,8 @@ struct AccelerometerReading {
   float x = 0.0f;
   float y = 0.0f;
   float z = 0.0f;
+  bool hardware_ok = true;
+
   float magnitude() const {
     return sqrtf(x * x + y * y + z * z);
   }
@@ -17,6 +19,7 @@ struct PressureReading {
   uint16_t left_toe = 0;
   uint16_t right_heel = 0;
   uint16_t right_toe = 0;
+  bool hardware_ok = true;
 
   uint16_t leftTotal() const { return left_heel + left_toe; }
   uint16_t rightTotal() const { return right_heel + right_toe; }

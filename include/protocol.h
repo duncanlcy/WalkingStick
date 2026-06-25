@@ -23,6 +23,25 @@ enum AlertType : uint8_t {
   ALERT_TYPE_GAIT_IRREGULAR = 3,
   ALERT_TYPE_LOW_BATTERY = 4,
   ALERT_TYPE_SOS = 5,
+  ALERT_TYPE_SENSOR_FAULT = 6,
+  ALERT_TYPE_MODEL_STOPPED = 7,
+};
+
+enum ModelState : uint8_t {
+  MODEL_STATE_RUNNING = 0,
+  MODEL_STATE_STOPPED = 1,
+  MODEL_STATE_RECOVERY = 2,
+};
+
+enum CommandType : uint8_t {
+  CMD_NONE = 0,
+  CMD_START_MODEL = 1,
+  CMD_STOP_MODEL = 2,
+  CMD_REBOOT_DEVICE = 3,
+};
+
+struct CommandPacket {
+  CommandType type = CMD_NONE;
 };
 
 struct SensorSample {
@@ -50,4 +69,6 @@ struct TelemetryPacket {
   SensorSample sample;
   AlertEvent alert;
   bool has_alert;
+  ModelState model_state;
+  bool sensor_healthy;
 };

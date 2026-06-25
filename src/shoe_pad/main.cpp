@@ -9,11 +9,17 @@
 #include "protocol.h"
 #include "sensors.h"
 #include "safety.h"
+#include "component_health.h"
+#include "model_controller.h"
 
 static PressureSensor pressure;
 static SafetyMonitor safety;
+static ComponentHealthMonitor health_monitor;
+static ModelController model;
 static BLEServer* ble_server = nullptr;
 static BLECharacteristic* telemetry_char = nullptr;
+static bool fault_alert_sent = false;
+static bool model_stopped_alert_sent = false;
 
 static void publishTelemetry(const TelemetryPacket& packet) {
   if (!telemetry_char) {
@@ -71,7 +77,28 @@ void loop() {
   digitalWrite(pins::shoe::STATUS_LED, !digitalRead(pins::shoe::STATUS_LED));
 
   const PressureReading reading = pressure.read();
-  const AlertEvent gait_alert = safety.evaluateGait(reading, DEVICE_SHOE_PAD);
+  const SensorHealth sensor_health = health_monitor.checkPressure(reading);
+  const bool sensor_healthy = health_monitor.pressureHealthy();
+
+  if (!sensor_healthy && model.inferenceAllowed()) {
+    model.stop(sensor_health.reason);
+    fault_alert_sent = false;
+    model_stopped_alert_sent = false;
+    Serial.printf("Stopping gait model inference: %s\n", sensor_health.reason);
+  }
+
+  model.tick(sensor_healthy);
+
+  AlertEvent active_alert{};
+  if (!sensor_healthy && !fault_alert_sent) {
+    active_alert = model.makeSensorFaultAlert(DEVICE_SHOE_PAD, sensor_health.reason);
+    fault_alert_sent = true;
+  } else if (!model.inferenceAllowed() && !model_stopped_alert_sent) {
+    active_alert = model.makeStoppedAlert(DEVICE_SHOE_PAD);
+    model_stopped_alert_sent = true;
+  } else if (model.inferenceAllowed()) {
+    active_alert = safety.evaluateGait(reading, DEVICE_SHOE_PAD);
+  }
 
   TelemetryPacket packet{};
   packet.protocol_version = PROTOCOL_VERSION;
@@ -81,12 +108,14 @@ void loop() {
   packet.sample.pressure_right = reading.rightTotal();
   packet.sample.battery_percent = 100;
   packet.sample.source = DEVICE_SHOE_PAD;
-  packet.has_alert = gait_alert.level != ALERT_NONE;
-  packet.alert = gait_alert;
+  packet.model_state = model.state();
+  packet.sensor_healthy = sensor_healthy;
+  packet.has_alert = active_alert.level != ALERT_NONE;
+  packet.alert = active_alert;
 
   publishTelemetry(packet);
 
   if (packet.has_alert) {
-    Serial.println(gait_alert.message);
+    Serial.println(active_alert.message);
   }
 }
