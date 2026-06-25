@@ -28,6 +28,7 @@ flowchart LR
 - **Fall and impact detection** via waist-mounted IMU.
 - **Protection** — padded enclosure around the waist; firmware triggers buzzer on critical events.
 - BLE peripheral that advertises the WalkingStick service.
+- **Media recommendation engine** — rule-based music and podcast suggestions based on time of day, wearer preference, and gait activity.
 
 ### Shoe pad (sensor node)
 
@@ -41,6 +42,8 @@ flowchart LR
 - **SOS button** on the handle triggers a local haptic alert.
 - **Vibration motor** for fall/low-battery warnings.
 - Battery monitoring via ADC.
+- **Podcast and music player** — elderly-friendly tactile buttons (play, next, volume, recommend) with haptic confirmation.
+- **Media recommendations** — requests curated music and podcast picks from the waist hub over BLE.
 
 ## Protocol
 
@@ -58,7 +61,25 @@ Characteristics:
 
 - `TELEMETRY_CHAR` — notify sensor data
 - `ALERT_CHAR` — notify safety events
-- `COMMAND_CHAR` — reserved for remote configuration
+- `COMMAND_CHAR` — media commands from walking stick (play, volume, preferences)
+- `MEDIA_CHAR` — notify music/podcast recommendations to walking stick
+
+### Media and recommendations
+
+The walking stick acts as a podcast and music player with inputs designed for elderly users:
+
+| Button | Short press | Long press |
+|--------|-------------|------------|
+| Play | Play / pause | — |
+| Next | Next track | Previous track |
+| Volume | Volume up | Volume down |
+| Recommend | Request recommendations | Cycle content preference |
+
+Preferences: calm music, upbeat music, news podcasts, story podcasts, or classic favorites.
+
+The waist hub generates recommendations using time of day and gait irregularity (calming picks when gait is uneven). Playback auto-pauses during safety alerts.
+
+Defined in `include/protocol.h`, `include/media_player.h`, `include/media_recommendations.h`, and `include/elderly_input.h`.
 
 ## Safety logic
 
