@@ -23,6 +23,17 @@ enum AlertType : uint8_t {
   ALERT_TYPE_GAIT_IRREGULAR = 3,
   ALERT_TYPE_LOW_BATTERY = 4,
   ALERT_TYPE_SOS = 5,
+  ALERT_TYPE_POSITION_IRREGULAR = 6,
+  ALERT_TYPE_COGNITIVE_WANDERING = 7,
+  ALERT_TYPE_STICK_POSTURE_ABNORMAL = 8,
+};
+
+struct PositionSample {
+  uint32_t timestamp_ms;
+  float x_m;
+  float y_m;
+  float accuracy_m;
+  DeviceRole source;
 };
 
 struct SensorSample {
@@ -34,6 +45,8 @@ struct SensorSample {
   uint16_t pressure_right;
   uint8_t battery_percent;
   DeviceRole source;
+  PositionSample position;
+  bool has_position;
 };
 
 struct AlertEvent {
