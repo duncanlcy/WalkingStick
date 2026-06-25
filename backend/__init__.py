@@ -1,0 +1,1 @@
+"""WalkingStick gait monitoring backend."""

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WalkingStick — Gait Monitor</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="alert-overlay" class="alert-overlay hidden" role="alert" aria-live="assertive">
+    <div class="alert-content">
+      <div class="alert-icon" id="alert-icon">⚠️</div>
+      <h2 id="alert-title">Warning</h2>
+      <p id="alert-message"></p>
+      <div class="alert-meta">
+        <span id="alert-severity-badge" class="badge"></span>
+        <span id="alert-score"></span>
+      </div>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">🦯</span>
+      <h1>WalkingStick</h1>
+    </div>
+    <div class="status-pill" id="connection-status">
+      <span class="dot"></span>
+      <span>Disconnected</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="panel controls-panel">
+      <h2>Sensor Input</h2>
+      <p class="subtitle">Stream walking sensor data to detect instability and issue warnings.</p>
+
+      <div class="control-group">
+        <label for="behavior-select">Simulated walking behavior</label>
+        <select id="behavior-select">
+          <option value="stable">Stable walking</option>
+          <option value="unstable" selected>Unstable walking</option>
+          <option value="near_fall">Near-fall event</option>
+        </select>
+      </div>
+
+      <div class="button-row">
+        <button id="btn-start" class="btn btn-primary">Start Monitoring</button>
+        <button id="btn-stop" class="btn btn-secondary" disabled>Stop</button>
+        <button id="btn-reset" class="btn btn-ghost">Reset</button>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="voice-enabled" checked>
+          <span>Voice warnings</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="visual-enabled" checked>
+          <span>Visual warnings</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel status-panel">
+      <h2>Live Status</h2>
+
+      <div class="stability-gauge">
+        <div class="gauge-label">Stability Score</div>
+        <div class="gauge-bar">
+          <div class="gauge-fill" id="gauge-fill"></div>
+        </div>
+        <div class="gauge-value" id="gauge-value">—</div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric">
+          <span class="metric-label">Cadence</span>
+          <span class="metric-value" id="metric-cadence">—</span>
+          <span class="metric-unit">steps/min</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Step Variability</span>
+          <span class="metric-value" id="metric-step-var">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Lateral Sway</span>
+          <span class="metric-value" id="metric-sway">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Asymmetry</span>
+          <span class="metric-value" id="metric-asymmetry">—</span>
+        </div>
+      </div>
+
+      <div class="severity-indicator" id="severity-indicator">
+        <span class="severity-label">Current Status:</span>
+        <span class="severity-value" id="severity-value">Normal</span>
+      </div>
+    </section>
+
+    <section class="panel flags-panel">
+      <h2>Instability Flags</h2>
+      <ul id="flags-list" class="flags-list">
+        <li class="flag-empty">No instability detected</li>
+      </ul>
+    </section>
+
+    <section class="panel log-panel">
+      <h2>Alert Log</h2>
+      <ul id="alert-log" class="alert-log">
+        <li class="log-empty">No alerts yet</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="/static/js/alerts.js"></script>
+  <script src="/static/js/sensor-sim.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

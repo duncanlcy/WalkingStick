@@ -1,0 +1,81 @@
+{
+  "window_size": 50,
+  "min_samples": 20,
+  "step_detection_threshold": 1.2,
+  "thresholds": {
+    "step_time_variability": {
+      "watch": 0.15,
+      "caution": 0.25,
+      "critical": 0.35
+    },
+    "lateral_sway_rms": {
+      "watch": 0.8,
+      "caution": 1.2,
+      "critical": 1.8
+    },
+    "cadence_drop_ratio": {
+      "watch": 0.15,
+      "caution": 0.30,
+      "critical": 0.45
+    },
+    "step_asymmetry": {
+      "watch": 0.12,
+      "caution": 0.20,
+      "critical": 0.30
+    },
+    "pitch_variance": {
+      "watch": 15.0,
+      "caution": 30.0,
+      "critical": 50.0
+    },
+    "roll_variance": {
+      "watch": 15.0,
+      "caution": 30.0,
+      "critical": 50.0
+    },
+    "impact_spike": {
+      "watch": 2.5,
+      "caution": 3.5,
+      "critical": 5.0
+    }
+  },
+  "alert_policy": {
+    "consecutive_unstable_windows": 2,
+    "voice_cooldown_seconds": 8.0,
+    "watch_cooldown_seconds": 3.0,
+    "caution_cooldown_seconds": 6.0,
+    "critical_cooldown_seconds": 4.0
+  },
+  "messages": {
+    "step_variability": {
+      "watch": "Your steps are becoming uneven. Try to walk steadily.",
+      "caution": "Uneven steps detected. Slow down and focus on your footing.",
+      "critical": "Very irregular steps! Stop and hold the stick firmly."
+    },
+    "lateral_sway": {
+      "watch": "Slight sway detected. Widen your stance slightly.",
+      "caution": "You are swaying. Take shorter, wider steps.",
+      "critical": "Heavy sway detected! Stop walking and steady yourself."
+    },
+    "cadence_drop": {
+      "watch": "Your walking pace has slowed.",
+      "caution": "Significant slowdown detected. Consider resting.",
+      "critical": "You have slowed down sharply. Please stop and rest."
+    },
+    "asymmetry": {
+      "watch": "Uneven weight on left and right steps.",
+      "caution": "Step asymmetry detected. Walk carefully.",
+      "critical": "Strong step imbalance! Hold the stick with both hands."
+    },
+    "near_fall": {
+      "watch": "Balance shift detected.",
+      "caution": "Near-fall pattern detected. Stop and regain balance.",
+      "critical": "Fall risk! Stop immediately and hold on!"
+    },
+    "rapid_deceleration": {
+      "watch": "Sudden movement change detected.",
+      "caution": "Rapid deceleration. Slow down gradually.",
+      "critical": "Sudden stop detected! Are you okay?"
+    }
+  }
+}
