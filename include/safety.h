@@ -38,7 +38,8 @@ class SafetyMonitor {
     return event;
   }
 
-  AlertEvent evaluateGait(const PressureReading& pressure, DeviceRole source) {
+  AlertEvent evaluateGait(const PressureReading& pressure, DeviceRole source,
+                        float imbalance_threshold = config::GAIT_IMBALANCE_THRESHOLD) {
     AlertEvent event{};
     event.timestamp_ms = millis();
     event.source = source;
@@ -57,10 +58,11 @@ class SafetyMonitor {
     const float imbalance = fabsf(static_cast<float>(left) - static_cast<float>(right)) /
                             static_cast<float>(total);
 
-    if (imbalance > 0.6f) {
+    if (imbalance > imbalance_threshold) {
       event.level = ALERT_WARNING;
-      event.type = ALERT_TYPE_GAIT_IRREGULAR;
-      snprintf(event.message, sizeof(event.message), "Gait imbalance: %.0f%%", imbalance * 100.0f);
+      event.type = ALERT_TYPE_GAIT_PREDICTION;
+      snprintf(event.message, sizeof(event.message),
+               "Abnormal walking detected: %.0f%% imbalance", imbalance * 100.0f);
     }
 
     return event;

@@ -8,11 +8,11 @@
 #include "device_roles.h"
 #include "protocol.h"
 #include "sensors.h"
-#include "safety.h"
+#include "gait_predictor.h"
 #include "data_logger.h"
 
 static AccelerometerSensor accelerometer;
-static SafetyMonitor safety;
+static GaitPredictor predictor;
 static DataLogger logger;
 static BLEServer* ble_server = nullptr;
 static BLECharacteristic* telemetry_char = nullptr;
@@ -78,6 +78,12 @@ void setup() {
   digitalWrite(pins::waist::SD_CS, HIGH);
 
   accelerometer.begin(pins::waist::MPU_INT);
+
+  RolloutConfig rollout{};
+  rollout.stage = ROLLOUT_INITIAL;
+  rollout.client_safety_threshold = config::DEFAULT_CLIENT_SAFETY_THRESHOLD;
+  predictor.setRolloutConfig(rollout);
+
   setupBle();
 
   Serial.printf("[%s] waist safety pad ready\n", deviceRoleName(DEVICE_WAIST_SAFETY_PAD));
@@ -94,7 +100,7 @@ void loop() {
   digitalWrite(pins::waist::STATUS_LED, !digitalRead(pins::waist::STATUS_LED));
 
   const AccelerometerReading accel = accelerometer.read();
-  const AlertEvent safety_alert = safety.evaluate(accel, DEVICE_WAIST_SAFETY_PAD);
+  const PredictionResult prediction = predictor.evaluateAccel(accel, DEVICE_WAIST_SAFETY_PAD);
 
   TelemetryPacket packet{};
   packet.protocol_version = PROTOCOL_VERSION;
@@ -105,14 +111,16 @@ void loop() {
   packet.sample.accel_z = accel.z;
   packet.sample.battery_percent = 100;
   packet.sample.source = DEVICE_WAIST_SAFETY_PAD;
-  packet.has_alert = safety_alert.level != ALERT_NONE;
-  packet.alert = safety_alert;
+  packet.has_alert = prediction.is_abnormal;
+  packet.alert = prediction.alert;
+  packet.has_metrics = true;
+  packet.metrics = predictor.metrics().snapshot();
 
   logger.log(packet);
   publishTelemetry(packet);
 
   if (packet.has_alert) {
-    publishAlert(safety_alert);
-    Serial.println(safety_alert.message);
+    publishAlert(prediction.alert);
+    Serial.println(prediction.alert.message);
   }
 }

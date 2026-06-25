@@ -8,10 +8,12 @@
 #include "device_roles.h"
 #include "protocol.h"
 #include "sensors.h"
-#include "safety.h"
+#include "gait_predictor.h"
+#include "data_logger.h"
 
 static PressureSensor pressure;
-static SafetyMonitor safety;
+static GaitPredictor predictor;
+static DataLogger logger;
 static BLEServer* ble_server = nullptr;
 static BLECharacteristic* telemetry_char = nullptr;
 
@@ -55,6 +57,11 @@ void setup() {
       pins::shoe::FSR_RIGHT_HEEL,
       pins::shoe::FSR_RIGHT_TOE);
 
+  RolloutConfig rollout{};
+  rollout.stage = ROLLOUT_INITIAL;
+  rollout.client_safety_threshold = config::DEFAULT_CLIENT_SAFETY_THRESHOLD;
+  predictor.setRolloutConfig(rollout);
+
   setupBle();
 
   Serial.printf("[%s] shoe pad sensor ready\n", deviceRoleName(DEVICE_SHOE_PAD));
@@ -71,7 +78,19 @@ void loop() {
   digitalWrite(pins::shoe::STATUS_LED, !digitalRead(pins::shoe::STATUS_LED));
 
   const PressureReading reading = pressure.read();
-  const AlertEvent gait_alert = safety.evaluateGait(reading, DEVICE_SHOE_PAD);
+
+  if (predictor.checkFallPrevention(reading)) {
+    SensorSample sample{};
+    sample.timestamp_ms = millis();
+    sample.pressure_left = reading.leftTotal();
+    sample.pressure_right = reading.rightTotal();
+    sample.battery_percent = 100;
+    sample.source = DEVICE_SHOE_PAD;
+    logger.logOutcome(OUTCOME_TRUE_POSITIVE, sample);
+    Serial.println("Fall prevention recorded (true positive)");
+  }
+
+  const PredictionResult prediction = predictor.evaluateGait(reading, DEVICE_SHOE_PAD);
 
   TelemetryPacket packet{};
   packet.protocol_version = PROTOCOL_VERSION;
@@ -81,12 +100,15 @@ void loop() {
   packet.sample.pressure_right = reading.rightTotal();
   packet.sample.battery_percent = 100;
   packet.sample.source = DEVICE_SHOE_PAD;
-  packet.has_alert = gait_alert.level != ALERT_NONE;
-  packet.alert = gait_alert;
+  packet.has_alert = prediction.is_abnormal;
+  packet.alert = prediction.alert;
+  packet.has_metrics = true;
+  packet.metrics = predictor.metrics().snapshot();
 
+  logger.log(packet);
   publishTelemetry(packet);
 
   if (packet.has_alert) {
-    Serial.println(gait_alert.message);
+    Serial.println(prediction.alert.message);
   }
 }
