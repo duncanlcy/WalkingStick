@@ -81,7 +81,9 @@ export class WalkingStickSimulator {
     this.scenario = scenario;
     if (scenario === SCENARIOS.sos) {
       this.triggerSos();
+      return;
     }
+    this.notify();
   }
 
   reset() {

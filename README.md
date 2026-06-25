@@ -76,17 +76,57 @@ Edit `include/config.h` to adjust:
 ## Localhost demo
 
 A browser-based simulator mirrors the three-device architecture, safety thresholds,
-and BLE data flow without hardware:
+and BLE data flow without hardware.
+
+### Windows (`E:\WalkingStick`)
+
+**PowerShell** (recommended):
+
+```powershell
+cd E:\WalkingStick
+.\scripts\run_demo.ps1
+```
+
+**Command Prompt**:
+
+```cmd
+cd E:\WalkingStick
+scripts\run_demo.bat
+```
+
+You should see:
+
+```
+============================================================
+WalkingStick demo is running
+Open in your browser: http://localhost:8080
+Press Ctrl+C to stop.
+============================================================
+```
+
+Then open **http://localhost:8080** if the browser does not open automatically.
+
+> Do **not** double-click `demo/index.html` — the page must be served over
+> `http://localhost` or the simulator will not load.
+
+### macOS / Linux
 
 ```bash
 ./scripts/run_demo.sh
 ```
 
-Then open [http://localhost:8080](http://localhost:8080).
-
 Use the scenario buttons to trigger normal gait, imbalance, fall, impact, SOS, and
 low-battery events. Telemetry updates every 50 ms using the same thresholds as
 `include/config.h` and `include/safety.h`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `demo` folder missing | Run `git pull` in the repo root |
+| `python` not found | Install Python 3 and check "Add to PATH" on Windows |
+| Port 8080 in use | `python demo/server.py --port 8081` |
+| Blank page | Use `http://localhost:8080`, not `file:///.../index.html` |
 
 ## CI
 

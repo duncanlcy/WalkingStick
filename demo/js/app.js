@@ -5,6 +5,23 @@ import {
   DeviceNames,
 } from './protocol.js';
 
+if (window.location.protocol === 'file:') {
+  document.body.innerHTML = `
+    <main style="max-width:640px;margin:3rem auto;padding:1.5rem;font-family:system-ui,sans-serif;line-height:1.5;">
+      <h1>WalkingStick demo must run through a local server</h1>
+      <p>Opening <code>index.html</code> directly will not work. Start the server first, then open the URL it prints.</p>
+      <h2>Windows (PowerShell)</h2>
+      <pre style="background:#111;color:#eee;padding:1rem;border-radius:8px;">cd E:\\WalkingStick
+.\\scripts\\run_demo.ps1</pre>
+      <h2>Windows (Command Prompt)</h2>
+      <pre style="background:#111;color:#eee;padding:1rem;border-radius:8px;">cd E:\\WalkingStick
+scripts\\run_demo.bat</pre>
+      <p>Then open <a href="http://localhost:8080">http://localhost:8080</a></p>
+    </main>
+  `;
+  throw new Error('Demo must be served over http://localhost');
+}
+
 const simulator = new WalkingStickSimulator();
 
 const els = {
@@ -48,26 +65,33 @@ function alertClass(level) {
 }
 
 function renderScenarioButtons(activeScenario) {
-  els.scenarioButtons.innerHTML = scenarios
-    .map(
-      (s) => `
-      <button
-        class="scenario-btn ${activeScenario === s.id ? 'active' : ''}"
-        data-scenario="${s.id}"
-        title="${s.desc}"
-      >
-        <span class="scenario-label">${s.label}</span>
-        <span class="scenario-desc">${s.desc}</span>
-      </button>
-    `,
-    )
-    .join('');
+  if (els.scenarioButtons.dataset.active !== activeScenario) {
+    els.scenarioButtons.dataset.active = activeScenario;
+    els.scenarioButtons.innerHTML = scenarios
+      .map(
+        (s) => `
+        <button
+          class="scenario-btn ${activeScenario === s.id ? 'active' : ''}"
+          data-scenario="${s.id}"
+          title="${s.desc}"
+        >
+          <span class="scenario-label">${s.label}</span>
+          <span class="scenario-desc">${s.desc}</span>
+        </button>
+      `,
+      )
+      .join('');
 
-  els.scenarioButtons.querySelectorAll('[data-scenario]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      simulator.setScenario(btn.dataset.scenario);
+    els.scenarioButtons.querySelectorAll('[data-scenario]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        simulator.setScenario(btn.dataset.scenario);
+      });
     });
-  });
+  } else {
+    els.scenarioButtons.querySelectorAll('[data-scenario]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.scenario === activeScenario);
+    });
+  }
 }
 
 function renderPressureBars(pressure) {
