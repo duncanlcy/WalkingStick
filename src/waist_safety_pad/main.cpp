@@ -9,11 +9,13 @@
 #include "protocol.h"
 #include "sensors.h"
 #include "safety.h"
+#include "location.h"
 #include "data_logger.h"
 
 static AccelerometerSensor accelerometer;
 static SafetyMonitor safety;
 static DataLogger logger;
+static StickLocationTracker location_tracker;
 static BLEServer* ble_server = nullptr;
 static BLECharacteristic* telemetry_char = nullptr;
 static BLECharacteristic* alert_char = nullptr;
@@ -85,6 +87,7 @@ void setup() {
 
 void loop() {
   static uint32_t last_sample = 0;
+  static uint32_t last_position_check = 0;
 
   if (millis() - last_sample < config::SENSOR_SAMPLE_MS) {
     return;
@@ -105,6 +108,7 @@ void loop() {
   packet.sample.accel_z = accel.z;
   packet.sample.battery_percent = 100;
   packet.sample.source = DEVICE_WAIST_SAFETY_PAD;
+  packet.sample.has_position = false;
   packet.has_alert = safety_alert.level != ALERT_NONE;
   packet.alert = safety_alert;
 
@@ -114,5 +118,33 @@ void loop() {
   if (packet.has_alert) {
     publishAlert(safety_alert);
     Serial.println(safety_alert.message);
+  }
+
+  if (millis() - last_position_check >= config::POSITION_SAMPLE_MS) {
+    last_position_check = millis();
+
+    BeaconReading anchor_reading{DEVICE_WAIST_SAFETY_PAD, config::RSSI_AT_1M_DBM};
+    const PositionSample position =
+        location_tracker.estimatePosition(&anchor_reading, 1);
+
+    if (location_tracker.hasFix()) {
+      packet.sample.position = position;
+      packet.sample.has_position = true;
+
+      const AlertEvent position_alert =
+          safety.evaluatePosition(position, DEVICE_WAIST_SAFETY_PAD);
+      const AlertEvent cognitive_alert =
+          safety.evaluateCognitiveMovement(location_tracker, DEVICE_WAIST_SAFETY_PAD);
+
+      AlertEvent combined = position_alert;
+      if (cognitive_alert.level > combined.level) {
+        combined = cognitive_alert;
+      }
+
+      if (combined.level != ALERT_NONE) {
+        publishAlert(combined);
+        Serial.println(combined.message);
+      }
+    }
   }
 }
