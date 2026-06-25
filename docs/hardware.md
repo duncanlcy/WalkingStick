@@ -30,6 +30,9 @@
 |-----------|-----|-------|
 | ESP32 dev board | 1 | Mounted in handle |
 | Tactile push button | 1 | SOS, GPIO 0 |
+| Tactile push buttons | 4 | Play, next, volume, recommend (GPIO 12–15) |
+| I2S amplifier (MAX98357A) | 1 | Speaker output for music/podcasts |
+| Small speaker (8 Ω) | 1 | 0.5–1 W, handle-mounted |
 | Vibration motor + driver | 1 | Haptic feedback |
 | Status LED | 1 | GPIO 2 |
 | Voltage divider | 1 | Battery ADC on GPIO 36 |
@@ -63,9 +66,16 @@ Defaults are in `include/config.h`. Adjust when your PCB revision differs.
 | Signal | GPIO |
 |--------|------|
 | SOS button | 0 (pull-up) |
+| Play / pause button | 12 (pull-up) |
+| Next track button | 13 (pull-up) |
+| Volume button | 14 (pull-up, short=up, long=down) |
+| Recommend button | 15 (pull-up, short=request, long=preference) |
 | Vibrator | 26 |
 | Status LED | 2 |
 | Battery ADC | 36 |
+| I2S BCK | 27 |
+| I2S LRCK | 32 |
+| I2S DOUT | 33 |
 
 ## Wiring notes
 
@@ -93,11 +103,25 @@ Connect MPU6050 via I2C:
 
 Replace the placeholder `AccelerometerSensor::read()` in `include/sensors.h` with your IMU driver.
 
+### I2S speaker (walking stick)
+
+Connect a MAX98357A I2S amplifier for podcast and music playback:
+
+| MAX98357A | ESP32 |
+|-----------|-------|
+| BCLK | 27 |
+| LRC | 32 |
+| DIN | 33 |
+| VIN | 3.3–5 V |
+| GND | GND |
+
+Place the speaker behind a grille in the handle. Default volume is capped at 70% for elderly-friendly listening.
+
 ## Assembly order
 
 1. Flash **waist safety pad** firmware and verify serial output.
 2. Flash **shoe pad** firmware; confirm pressure readings over serial.
-3. Flash **walking stick** firmware; test SOS button and vibration.
+3. Flash **walking stick** firmware; test SOS button, media buttons, and vibration.
 4. Power all nodes; confirm BLE advertising names:
    - `WalkingStick-Waist`
    - `WalkingStick-Shoe`

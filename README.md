@@ -4,7 +4,7 @@ Firmware and build tooling for a distributed mobility-assist system:
 
 | Device | Role |
 |--------|------|
-| **Walking stick** | Handle UI, haptic alerts, BLE scanning, SOS button |
+| **Walking stick** | Handle UI, haptic alerts, BLE scanning, SOS button, podcast/music player |
 | **Shoe pad** | Foot-pressure sensors for gait and balance monitoring |
 | **Waist safety pad** | Fall/impact detection, protection zone, central data collector |
 

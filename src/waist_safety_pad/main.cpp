@@ -10,13 +10,18 @@
 #include "sensors.h"
 #include "safety.h"
 #include "data_logger.h"
+#include "media_recommendations.h"
 
 static AccelerometerSensor accelerometer;
 static SafetyMonitor safety;
 static DataLogger logger;
+static MediaRecommendationEngine recommender;
 static BLEServer* ble_server = nullptr;
 static BLECharacteristic* telemetry_char = nullptr;
 static BLECharacteristic* alert_char = nullptr;
+static BLECharacteristic* command_char = nullptr;
+static BLECharacteristic* media_char = nullptr;
+static bool gait_irregular_active = false;
 
 static void publishTelemetry(const TelemetryPacket& packet) {
   if (!telemetry_char) {
@@ -46,6 +51,69 @@ static void publishAlert(const AlertEvent& alert) {
   }
 }
 
+static void publishRecommendations() {
+  if (!media_char) {
+    return;
+  }
+
+  const uint32_t hour = (millis() / 3600000UL + 8) % 24;
+  const MediaRecommendationList list =
+      recommender.recommend(hour, gait_irregular_active);
+
+  uint8_t payload[sizeof(MediaRecommendationList)];
+  memcpy(payload, &list, sizeof(list));
+  media_char->setValue(payload, sizeof(payload));
+  media_char->notify();
+
+  Serial.printf("Sent %u recommendations: %s\n", list.count, list.greeting);
+}
+
+static void handleMediaCommand(const MediaCommand& cmd) {
+  switch (cmd.command) {
+    case MEDIA_CMD_REQUEST_RECOMMENDATIONS:
+      if (cmd.preference != PREF_NONE) {
+        recommender.setPreference(cmd.preference);
+      }
+      publishRecommendations();
+      break;
+
+    case MEDIA_CMD_SET_PREFERENCE:
+      recommender.setPreference(cmd.preference);
+      Serial.printf("Preference updated: %s\n",
+                    recommender.preferenceLabel(cmd.preference));
+      publishRecommendations();
+      break;
+
+    case MEDIA_CMD_SELECT_RECOMMENDATION:
+      Serial.printf("Selected recommendation #%u\n", cmd.selection_index + 1);
+      break;
+
+    case MEDIA_CMD_PLAY_PAUSE:
+    case MEDIA_CMD_NEXT:
+    case MEDIA_CMD_PREVIOUS:
+    case MEDIA_CMD_VOLUME_UP:
+    case MEDIA_CMD_VOLUME_DOWN:
+      Serial.printf("Media command from stick: %u\n", cmd.command);
+      break;
+
+    default:
+      break;
+  }
+}
+
+class CommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const std::string value = characteristic->getValue();
+    if (value.size() < sizeof(MediaCommand)) {
+      return;
+    }
+
+    MediaCommand cmd{};
+    memcpy(&cmd, value.data(), sizeof(cmd));
+    handleMediaCommand(cmd);
+  }
+};
+
 static void setupBle() {
   BLEDevice::init(BLE_DEVICE_NAME);
   ble_server = BLEDevice::createServer();
@@ -60,6 +128,16 @@ static void setupBle() {
       ALERT_CHAR_UUID,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
   alert_char->addDescriptor(new BLE2902());
+
+  command_char = service->createCharacteristic(
+      COMMAND_CHAR_UUID,
+      BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
+  command_char->setCallbacks(new CommandCallbacks());
+
+  media_char = service->createCharacteristic(
+      MEDIA_CHAR_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+  media_char->addDescriptor(new BLE2902());
 
   service->start();
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
@@ -80,7 +158,8 @@ void setup() {
   accelerometer.begin(pins::waist::MPU_INT);
   setupBle();
 
-  Serial.printf("[%s] waist safety pad ready\n", deviceRoleName(DEVICE_WAIST_SAFETY_PAD));
+  Serial.printf("[%s] waist safety pad ready (media recommendations enabled)\n",
+                deviceRoleName(DEVICE_WAIST_SAFETY_PAD));
 }
 
 void loop() {
@@ -95,6 +174,10 @@ void loop() {
 
   const AccelerometerReading accel = accelerometer.read();
   const AlertEvent safety_alert = safety.evaluate(accel, DEVICE_WAIST_SAFETY_PAD);
+
+  gait_irregular_active =
+      safety_alert.type == ALERT_TYPE_GAIT_IRREGULAR &&
+      safety_alert.level >= ALERT_WARNING;
 
   TelemetryPacket packet{};
   packet.protocol_version = PROTOCOL_VERSION;

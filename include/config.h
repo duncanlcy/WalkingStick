@@ -24,9 +24,16 @@ constexpr int STATUS_LED = 2;
 
 namespace stick {
 constexpr int BUTTON_ALERT = 0;
+constexpr int BUTTON_PLAY = 12;
+constexpr int BUTTON_NEXT = 13;
+constexpr int BUTTON_VOLUME = 14;
+constexpr int BUTTON_RECOMMEND = 15;
 constexpr int VIBRATOR = 26;
 constexpr int STATUS_LED = 2;
 constexpr int BATTERY_ADC = 36;
+constexpr int I2S_BCK = 27;
+constexpr int I2S_LRCK = 32;
+constexpr int I2S_DOUT = 33;
 }  // namespace stick
 
 }  // namespace pins
@@ -41,4 +48,12 @@ constexpr float FALL_ACCEL_THRESHOLD_G = 2.5f;
 constexpr float IMPACT_THRESHOLD_G = 4.0f;
 constexpr uint16_t MIN_PRESSURE_THRESHOLD = 100;
 constexpr uint8_t LOW_BATTERY_PERCENT = 15;
+
+// Elderly-friendly media input timing
+constexpr uint32_t BUTTON_DEBOUNCE_MS = 80;
+constexpr uint32_t BUTTON_LONG_PRESS_MS = 800;
+constexpr uint8_t MEDIA_DEFAULT_VOLUME = 40;
+constexpr uint8_t MEDIA_MAX_VOLUME = 70;
+constexpr uint8_t MEDIA_VOLUME_STEP = 10;
+constexpr uint8_t MEDIA_MAX_RECOMMENDATIONS = 5;
 }  // namespace config
